@@ -1,37 +1,81 @@
 package com.likelion.favorite
 
+import com.likelion.common.ApiException
+import com.likelion.common.ErrorCode
+import com.likelion.common.auth.CurrentUserProvider
+import com.likelion.common.pageRequestOf
+import com.likelion.domain.benefit.BenefitTitleResolver
+import com.likelion.domain.favorite.FavoriteEntity
+import com.likelion.domain.favorite.FavoriteRepository
+import com.likelion.domain.store.StoreEntity
+import com.likelion.domain.store.StoreRepository
 import com.likelion.store.PageResponse
 import com.likelion.store.StoreListItemResponse
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 @Service
-class FavoriteService {
+class FavoriteService(
+    private val currentUserProvider: CurrentUserProvider,
+    private val favoriteRepository: FavoriteRepository,
+    private val storeRepository: StoreRepository,
+    private val benefitTitleResolver: BenefitTitleResolver,
+) {
+    @Transactional
     fun addFavorite(storeId: Long): FavoriteResultResponse {
-        // TODO: 로그인 사용자 기준 중복 즐겨찾기 정책 확정 후 구현
+        val userId = currentUserProvider.currentUserId()
+        storeRepository.findByIdAndIsActiveTrueAndDeletedAtIsNull(storeId)
+            ?: throw ApiException(ErrorCode.STORE_404)
+
+        if (favoriteRepository.existsByUserIdAndStoreId(userId, storeId)) {
+            throw ApiException(ErrorCode.FAVORITE_409)
+        }
+
+        favoriteRepository.save(FavoriteEntity(userId = userId, storeId = storeId))
+
         return FavoriteResultResponse(storeId = storeId, isFavorite = true)
     }
 
+    @Transactional
     fun removeFavorite(storeId: Long): FavoriteResultResponse {
-        // TODO: 멱등 삭제 여부 확정 후 구현
+        val userId = currentUserProvider.currentUserId()
+        if (!storeRepository.existsById(storeId)) {
+            throw ApiException(ErrorCode.STORE_404)
+        }
+
+        favoriteRepository.findByUserIdAndStoreId(userId, storeId)
+            ?.let { favoriteRepository.delete(it) }
+
         return FavoriteResultResponse(storeId = storeId, isFavorite = false)
     }
 
-    fun getMyFavorites(page: Int, size: Int): PageResponse<StoreListItemResponse> =
-        PageResponse(
-            content = listOf(
-                StoreListItemResponse(
-                    storeId = 1,
-                    name = "윤스쿡",
-                    thumbnailUrl = "https://image.example.com/store1.jpg",
-                    address = "서울 노원구 광운로 20",
-                    description = "광운대생 인증 시 10% 할인",
-                    isFavorite = true,
-                ),
-            ),
-            page = page,
-            size = size,
-            totalElements = 1,
-            totalPages = 1,
-            hasNext = false,
+    @Transactional(readOnly = true)
+    fun getMyFavorites(page: Int, size: Int): PageResponse<StoreListItemResponse> {
+        val storePage = favoriteRepository.findVisibleFavoriteStoresByUserId(
+            userId = currentUserProvider.currentUserId(),
+            pageable = pageRequestOf(page, size),
         )
+        val benefitTitles = benefitTitleResolver.titlesByStoreId(storePage.content.mapNotNull { it.id })
+
+        return PageResponse(
+            content = storePage.content.map { it.toFavoriteListItem(benefitTitles) },
+            page = storePage.number,
+            size = storePage.size,
+            totalElements = storePage.totalElements,
+            totalPages = storePage.totalPages,
+            hasNext = storePage.hasNext(),
+        )
+    }
+
+    private fun StoreEntity.toFavoriteListItem(benefitTitles: Map<Long, String>): StoreListItemResponse {
+        val storeId = requireNotNull(id)
+        return StoreListItemResponse(
+            storeId = storeId,
+            name = name,
+            thumbnailUrl = thumbnailUrl,
+            address = address,
+            description = benefitTitleResolver.titleOrFallback(benefitTitles, storeId),
+            isFavorite = true,
+        )
+    }
 }
