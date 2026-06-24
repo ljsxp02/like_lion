@@ -48,4 +48,12 @@ class DeploymentReadinessTests @Autowired constructor(
                 jsonPath("$.status") { value("UP") }
             }
     }
+
+    @Test
+    fun `store list remains publicly accessible`() {
+        mockMvc.get("/api/v1/stores")
+            .andExpect {
+                status { isOk() }
+            }
+    }
 }

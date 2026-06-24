@@ -34,7 +34,7 @@
 - 새 컬럼이 필요하면 기존 `V1__init_schema.sql`을 수정하지 말고 `V2__...sql`을 추가한다.
 - 서비스 로직에서 예외는 문자열을 직접 만들지 말고 `ErrorCode`와 `ApiException`을 사용한다.
 - 로그인 사용자 ID가 필요하면 직접 mock 값을 쓰지 말고 `CurrentUserProvider`를 주입한다.
-- 인증/JWT 담당자는 나중에 `MockCurrentUserProvider`를 실제 SecurityContext 기반 구현으로 교체한다.
+- `CurrentUserProvider`는 검증된 JWT의 SecurityContext 사용자 정보를 반환한다.
 
 ## 관계 요약
 

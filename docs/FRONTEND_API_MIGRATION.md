@@ -92,7 +92,6 @@ export interface PageResponse<T> {
 | `total_pages` | `totalPages` |
 | `has_next` | `hasNext` |
 | `access_token` | `accessToken` |
-| `refresh_token` | `refreshToken` |
 | `user_type` | `userType` |
 | `is_email_verified` | `isEmailVerified` |
 | `benefit_title` | `benefitTitle` |
@@ -187,7 +186,7 @@ type UserType = "STUDENT" | "OWNER" | "ADMIN";
 
 interface LoginResponse {
   accessToken: string;
-  refreshToken: string;
+  expiresInSeconds: number;
   user: {
     userId: number;
     email: string;
@@ -198,7 +197,13 @@ interface LoginResponse {
 }
 ```
 
-토큰은 현재 시연용 값이다. 실제 JWT 검증은 구현 범위가 아니다.
+`accessToken`은 JWT다. 즐겨찾기와 마이페이지 요청에는 다음 헤더를 추가한다.
+
+```http
+Authorization: Bearer {accessToken}
+```
+
+기존 계정도 같은 로그인 요청을 사용하며, 서버가 최초 로그인 시 비밀번호 저장 형식을 BCrypt로 전환한다.
 
 ### Category
 
@@ -475,7 +480,7 @@ type BenefitUsageListResponse = PageResponse<BenefitUsage>;
 - `/api/v1/qr/**`
 - `/api/v1/admin/**`
 - 업종 카테고리 생성·조회·필터
-- 실제 JWT 검증과 역할별 권한 처리
+- 역할별 세부 권한 처리
 - QR 카메라 및 QR 인증
 - 운영자 마이페이지와 매장 관리
 
@@ -488,7 +493,9 @@ type BenefitUsageListResponse = PageResponse<BenefitUsage>;
 [ ] 응답 값을 response.data.data 또는 프로젝트 API wrapper의 동등한 방식으로 읽는다.
 [ ] data.colleges, data.departments, data.stores, data.suggestions 구조를 구분한다.
 [ ] 회원가입 요청에서 verificationToken을 제거했다.
-[ ] 회원가입 응답에서 accessToken/refreshToken을 읽지 않는다.
+[ ] 회원가입 응답에서 토큰을 읽지 않는다.
+[ ] 로그인 응답의 accessToken을 저장하고 보호 API에 Bearer 헤더로 전달한다.
+[ ] 로그인 응답에서 refreshToken을 읽지 않고 expiresInSeconds를 사용한다.
 [ ] 검색 자동완성에서 suggestions를 사용한다.
 [ ] Store 상세에서 존재하지 않는 qrToken/createdAt 필드를 사용하지 않는다.
 [ ] nullable 이미지·소속 정보에 fallback 처리가 있다.

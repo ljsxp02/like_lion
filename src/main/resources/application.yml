@@ -22,6 +22,9 @@ server:
 app:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:https://team1-fe-1m1a.vercel.app,http://localhost:5173}
+  jwt:
+    secret: ${JWT_SECRET}
+    access-token-expiration-seconds: ${JWT_ACCESS_TOKEN_EXPIRATION_SECONDS:3600}
 
 management:
   endpoints:

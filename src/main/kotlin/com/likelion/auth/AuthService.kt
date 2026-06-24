@@ -8,6 +8,7 @@ import com.likelion.domain.user.UserEntity
 import com.likelion.domain.user.UserRepository
 import com.likelion.domain.user.UserType
 import org.slf4j.LoggerFactory
+import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -17,6 +18,8 @@ import java.util.UUID
 class AuthService(
     private val emailVerificationCodeRepository: EmailVerificationCodeRepository,
     private val userRepository: UserRepository,
+    private val passwordEncoder: PasswordEncoder,
+    private val jwtService: JwtService,
 ) {
     private val log = LoggerFactory.getLogger(javaClass)
 
@@ -90,7 +93,7 @@ class AuthService(
         val user = userRepository.save(
             UserEntity(
                 email = request.email,
-                passwordHash = request.password,
+                passwordHash = passwordEncoder.encode(request.password),
                 name = request.name,
                 userType = userType,
                 isEmailVerified = false,
@@ -106,17 +109,29 @@ class AuthService(
         )
     }
 
+    @Transactional
     fun login(request: LoginRequest): LoginResponse {
         val user = userRepository.findByEmail(request.email)
             ?: throw ApiException(ErrorCode.USER_404)
 
-        if (user.passwordHash != request.password) {
+        val isBcryptPassword = user.passwordHash.startsWith(BCRYPT_PREFIX)
+        val passwordMatches =
+            if (isBcryptPassword) {
+                passwordEncoder.matches(request.password, user.passwordHash)
+            } else {
+                user.passwordHash == request.password
+            }
+
+        if (!passwordMatches) {
             throw ApiException(ErrorCode.AUTH_401)
+        }
+        if (!isBcryptPassword) {
+            user.passwordHash = passwordEncoder.encode(request.password)
         }
 
         return LoginResponse(
-            accessToken = UUID.randomUUID().toString(),
-            refreshToken = UUID.randomUUID().toString(),
+            accessToken = jwtService.createAccessToken(user),
+            expiresInSeconds = jwtService.accessTokenExpirationSeconds,
             user = AuthUserResponse(
                 userId = user.id!!,
                 email = user.email,
@@ -125,5 +140,9 @@ class AuthService(
                 isEmailVerified = user.isEmailVerified,
             ),
         )
+    }
+
+    private companion object {
+        const val BCRYPT_PREFIX = "\$2"
     }
 }

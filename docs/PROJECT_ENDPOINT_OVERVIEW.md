@@ -41,7 +41,7 @@ src/main/kotlin/com/likelion
 │  └─ auth
 │     ├─ CurrentUser.kt
 │     ├─ CurrentUserProvider.kt
-│     └─ MockCurrentUserProvider.kt
+│     └─ SecurityContextCurrentUserProvider.kt
 ├─ auth
 ├─ category
 ├─ store
@@ -133,9 +133,9 @@ QR_400, QR_404, QR_409
 ADMIN_STORE_404, ADMIN_MENU_404, ADMIN_BENEFIT_404
 ```
 
-## 7. 인증 전 임시 규칙
+## 7. JWT 인증 규칙
 
-아직 Spring Security/JWT는 없다. 로그인 사용자 정보가 필요한 Service는 직접 `1024` 같은 값을 쓰지 말고 `CurrentUserProvider`를 주입한다.
+Spring Security가 Bearer JWT를 검증하고 `SecurityContextCurrentUserProvider`가 로그인 사용자를 제공한다. 로그인 사용자 정보가 필요한 Service는 직접 사용자 ID를 받지 않고 `CurrentUserProvider`를 주입한다.
 
 ```kotlin
 class FavoriteService(
@@ -147,15 +147,7 @@ class FavoriteService(
 }
 ```
 
-현재는 `MockCurrentUserProvider`가 항상 아래 사용자를 반환한다.
-
-```text
-userId = 1024
-email = student@kw.ac.kr
-userType = STUDENT
-```
-
-JWT 담당자는 나중에 `MockCurrentUserProvider`를 실제 SecurityContext 기반 구현으로 교체한다.
+회원가입 비밀번호는 BCrypt 해시로 저장한다. 로그인 성공 시 1시간 유효한 JWT access token을 반환하며, 즐겨찾기와 마이페이지 API는 인증이 필요하다.
 
 ## 8. UserType 기준
 
@@ -294,7 +286,7 @@ domain/favorite/FavoriteRepository.kt
 - 비밀번호 해싱
 - 로그인
 - JWT 발급
-- `MockCurrentUserProvider` 대체 구현
+- JWT 검증과 SecurityContext 사용자 연동
 
 ### Store 담당
 

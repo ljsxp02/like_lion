@@ -33,13 +33,13 @@ QR/Admin은 Controller와 Service 골격이 있어도 이번 범위에서는 건
 
 아래 기능은 이번 프로젝트에서 구현하지 않는다.
 
-- 실제 JWT/Spring Security 인증 및 권한 관리
+- 역할별 세부 권한 관리
 - QR 검증, 중복 사용 방지, 혜택 사용 기록 처리
 - 운영자 마이페이지와 Admin 매장·메뉴·혜택 관리 기능
 - 프론트엔드 지도, GPS, 바텀시트, 화면 이동, QR 카메라 UI
 - 식사·카페·주류·기타 등의 매장 업종 카테고리 및 업종별 필터
 
-현재 존재하는 `MockCurrentUserProvider`, QR/Admin Controller·Service 골격과 더미 응답은 시연용 또는 추후 확장 지점으로만 유지한다. 매장 업종 카테고리를 위한 별도 DB 테이블이나 migration도 추가하지 않는다. 지도 응답의 `categories`는 빈 배열로 유지한다. 위 기능은 이번 프로젝트의 완료 기준과 테스트 범위에 포함하지 않는다.
+QR/Admin Controller·Service 골격과 더미 응답은 시연용 또는 추후 확장 지점으로만 유지한다. 매장 업종 카테고리를 위한 별도 DB 테이블이나 migration도 추가하지 않는다. 지도 응답의 `categories`는 빈 배열로 유지한다.
 
 ## 2. 공통 작업 원칙
 
@@ -86,7 +86,7 @@ class FavoriteService(
 }
 ```
 
-현재는 `MockCurrentUserProvider`가 고정 사용자를 반환한다. 나중에 JWT/Security가 붙으면 Provider 구현만 교체한다.
+현재는 Spring Security가 JWT를 검증하고 `SecurityContextCurrentUserProvider`가 실제 로그인 사용자를 반환한다.
 
 ### DB 변경
 
@@ -196,10 +196,10 @@ src/main/kotlin/com/likelion/domain/auth/EmailVerificationCodeRepository.kt
 
 - 이메일 중복 확인
 - `SignupUserType`은 `STUDENT`, `OWNER`만 허용
-- 현재 시연 버전은 비밀번호 원문 저장. 운영 전 해싱 필요
+- 비밀번호 BCrypt 해싱
 - `UserEntity` 저장
 - `isEmailVerified=false`로 저장
-- 로그인 성공 시 accessToken/refreshToken 반환
+- 로그인 성공 시 JWT accessToken과 만료 시간 반환
 
 주의:
 
@@ -221,7 +221,7 @@ src/main/kotlin/com/likelion/domain/auth/EmailVerificationCodeRepository.kt
 
 - 이메일로 사용자 조회
 - 비밀번호 검증
-- accessToken/refreshToken 반환
+- JWT accessToken 반환
 - user 정보 반환
 
 주의:
@@ -303,7 +303,7 @@ size=20
 주의:
 
 - `favoriteOnly=true`이면 현재 로그인 사용자가 필요하다.
-- 현재 인증은 mock이므로 `CurrentUserProvider`를 주입해서 사용한다.
+- 인증 사용자는 `CurrentUserProvider`를 주입해서 조회한다.
 - 비로그인 상태를 코드에서 아직 구분할 수 없다면 TODO를 남기고 mock user 기준으로 구현한다.
 
 ### 지도용 매장 조회
@@ -526,7 +526,7 @@ V3__add_user_refresh_token.sql
 3. B(Store)가 매장 조회를 구현
 4. C(Favorite)가 CurrentUserProvider 기준으로 즐겨찾기 구현
 5. C(MyPage)가 사용자/즐겨찾기/혜택 사용 내역을 연결
-6. 이후 Security/JWT 담당이 MockCurrentUserProvider를 교체
+6. Security/JWT가 검증한 실제 로그인 사용자로 기능 확인
 ```
 
-Auth가 완전히 끝나기 전에도 B/C는 `MockCurrentUserProvider` 기준으로 개발할 수 있다.
+서비스 테스트에서는 `CurrentUserProvider` 테스트 구현을 주입할 수 있다.

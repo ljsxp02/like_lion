@@ -37,13 +37,16 @@ class StoreService(
     fun getStores(condition: StoreSearchCondition): PageResponse<StoreListItemResponse> {
         validateCategoryFilters(condition.collegeId, condition.departmentId)
         val keyword = condition.keyword?.trim()?.takeIf { it.isNotEmpty() }
-        val userId = currentUserProvider.currentUserId()
+        val userId = currentUserProvider.currentUserIdOrNull()
+        if (condition.favoriteOnly == true && userId == null) {
+            throw ApiException(ErrorCode.AUTH_001)
+        }
         val storePage = storeRepository.searchVisibleStores(
             collegeId = condition.collegeId,
             departmentId = condition.departmentId,
             keyword = keyword,
             favoriteOnly = condition.favoriteOnly == true,
-            userId = userId,
+            userId = userId ?: ANONYMOUS_USER_ID,
             pageable = pageRequestOf(condition.page, condition.size),
         )
         val storeIds = storePage.content.mapNotNull { it.id }
@@ -128,7 +131,7 @@ class StoreService(
     @Transactional(readOnly = true)
     fun getStoreSummary(storeId: Long): StoreSummaryResponse {
         val store = findVisibleStore(storeId)
-        val userId = currentUserProvider.currentUserId()
+        val userId = currentUserProvider.currentUserIdOrNull()
         val benefitTitle = benefitTitleResolver.titlesByStoreId(listOf(storeId))[storeId]
 
         return StoreSummaryResponse(
@@ -137,7 +140,7 @@ class StoreService(
             thumbnailUrl = store.thumbnailUrl,
             address = store.address,
             description = benefitTitle ?: "혜택 정보 없음",
-            isFavorite = favoriteRepository.existsByUserIdAndStoreId(userId, storeId),
+            isFavorite = userId?.let { favoriteRepository.existsByUserIdAndStoreId(it, storeId) } ?: false,
         )
     }
 
@@ -175,10 +178,9 @@ class StoreService(
                     displayOrder = it.displayOrder,
                 )
             },
-            isFavorite = favoriteRepository.existsByUserIdAndStoreId(
-                currentUserProvider.currentUserId(),
-                storeId,
-            ),
+            isFavorite = currentUserProvider.currentUserIdOrNull()
+                ?.let { favoriteRepository.existsByUserIdAndStoreId(it, storeId) }
+                ?: false,
         )
     }
 
@@ -218,8 +220,12 @@ class StoreService(
         storeRepository.findByIdAndIsActiveTrueAndDeletedAtIsNull(storeId)
             ?: throw ApiException(ErrorCode.STORE_404)
 
-    private fun favoriteStoreIds(userId: Long, storeIds: List<Long>): Set<Long> =
-        if (storeIds.isEmpty()) emptySet() else favoriteRepository.findFavoriteStoreIds(userId, storeIds)
+    private fun favoriteStoreIds(userId: Long?, storeIds: List<Long>): Set<Long> =
+        if (userId == null || storeIds.isEmpty()) {
+            emptySet()
+        } else {
+            favoriteRepository.findFavoriteStoreIds(userId, storeIds)
+        }
 
     private fun StoreEntity.toListItem(description: String, isFavorite: Boolean): StoreListItemResponse =
         StoreListItemResponse(
@@ -248,5 +254,6 @@ class StoreService(
 
     private companion object {
         const val EARTH_RADIUS_METERS = 6_371_000.0
+        const val ANONYMOUS_USER_ID = -1L
     }
 }
