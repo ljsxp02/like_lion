@@ -76,7 +76,7 @@ jobs:
           install -m 700 -d ~/.ssh
           printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/ec2_key
           chmod 600 ~/.ssh/ec2_key
-          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
+          timeout 15s ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
 
       - name: Deploy to EC2
         env:
@@ -84,7 +84,12 @@ jobs:
           EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
           IMAGE_TAG: ${{ github.sha }}
         run: |
-          ssh -i ~/.ssh/ec2_key "$EC2_USERNAME@$EC2_HOST" \
+          timeout 10m ssh \
+            -o BatchMode=yes \
+            -o ConnectTimeout=15 \
+            -o ServerAliveInterval=5 \
+            -o ServerAliveCountMax=3 \
+            -i ~/.ssh/ec2_key "$EC2_USERNAME@$EC2_HOST" \
             "IMAGE_NAME='$IMAGE_NAME' IMAGE_TAG='$IMAGE_TAG' bash -s" <<'REMOTE'
           set -euo pipefail
 
