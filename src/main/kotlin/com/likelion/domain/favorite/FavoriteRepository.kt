@@ -13,6 +13,19 @@ interface FavoriteRepository : JpaRepository<FavoriteEntity, Long> {
     fun findAllByUserId(userId: Long): List<FavoriteEntity>
 
     @Query(
+        """
+            select f.storeId
+            from FavoriteEntity f
+            where f.userId = :userId
+              and f.storeId in :storeIds
+        """,
+    )
+    fun findFavoriteStoreIds(
+        @Param("userId") userId: Long,
+        @Param("storeIds") storeIds: Collection<Long>,
+    ): Set<Long>
+
+    @Query(
         value = """
             select s
             from FavoriteEntity f

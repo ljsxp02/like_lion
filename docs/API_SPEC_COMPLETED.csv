@@ -1,7 +1,7 @@
 API명,BE 구현,Endpoint,FE 연동,Method,Query Parameters,도메인,비고,상태,설명,인증 필요 여부,주요 Error Code
 이메일 인증 코드 발송,No,/api/v1/auth/email/send-code,No,POST,,Auth,유효시간 5분 및 재발송 제한 60초,명세 완료,학교 이메일로 인증 코드 발송,No,"AUTH_400, AUTH_409, COMMON_500"
 이메일 인증 코드 확인,No,/api/v1/auth/email/verify,No,POST,,Auth,확인 성공 시 verificationToken 반환,명세 완료,이메일 인증 코드 검증,No,"AUTH_400, AUTH_401, COMMON_500"
-회원가입 완료,No,/api/v1/auth/signup,No,POST,,Auth,가입 성공 시 accessToken/refreshToken 발급,명세 완료,이메일 인증 완료 후 회원가입,No,"AUTH_400, USER_409, COMMON_500"
+회원가입 완료,No,/api/v1/auth/signup,No,POST,,Auth,이메일 인증 없이 계정 생성 후 로그인 필요,명세 완료,이메일과 비밀번호로 바로 회원가입,No,"USER_409, COMMON_500"
 로그인,No,/api/v1/auth/login,No,POST,,Auth,학교 이메일 로그인,명세 완료,이메일과 비밀번호로 로그인,No,"AUTH_401, USER_404, COMMON_500"
 단과대 목록 조회,No,/api/v1/colleges,No,GET,,Category/Filter,전체 단과대 목록,명세 완료,단과대 필터 옵션 조회,No,COMMON_500
 학과 목록 조회,No,/api/v1/departments,No,GET,collegeId,Category/Filter, collegeId 없으면 전체 조회,명세 완료,학과 필터 옵션 조회,No,"COMMON_400, COMMON_500"

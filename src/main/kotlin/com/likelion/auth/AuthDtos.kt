@@ -31,8 +31,6 @@ data class VerifyEmailResponse(
 )
 
 data class SignupRequest(
-    @field:NotBlank(message = "인증 토큰은 필수입니다.")
-    val verificationToken: String,
     @field:Email(message = "이메일 형식이 올바르지 않습니다.")
     @field:NotBlank(message = "이메일은 필수입니다.")
     val email: String,
@@ -50,8 +48,6 @@ data class SignupRequest(
 data class SignupResponse(
     val userId: Long,
     val userType: SignupUserType,
-    val accessToken: String,
-    val refreshToken: String,
 )
 
 data class LoginRequest(

@@ -78,13 +78,6 @@ class AuthService(
 
     @Transactional
     fun signup(request: SignupRequest): SignupResponse {
-        val record = emailVerificationCodeRepository.findByVerificationToken(request.verificationToken)
-            ?: throw ApiException(ErrorCode.AUTH_400, "유효하지 않은 인증 토큰입니다.")
-
-        if (record.email != request.email) {
-            throw ApiException(ErrorCode.AUTH_400, "이메일이 인증 정보와 일치하지 않습니다.")
-        }
-
         if (userRepository.existsByEmail(request.email)) {
             throw ApiException(ErrorCode.USER_409)
         }
@@ -100,7 +93,7 @@ class AuthService(
                 passwordHash = request.password,
                 name = request.name,
                 userType = userType,
-                isEmailVerified = true,
+                isEmailVerified = false,
                 collegeId = if (request.userType == SignupUserType.STUDENT) request.collegeId else null,
                 departmentId = if (request.userType == SignupUserType.STUDENT) request.departmentId else null,
                 storeId = if (request.userType == SignupUserType.OWNER) request.storeId else null,
@@ -110,8 +103,6 @@ class AuthService(
         return SignupResponse(
             userId = user.id!!,
             userType = request.userType,
-            accessToken = UUID.randomUUID().toString(),
-            refreshToken = UUID.randomUUID().toString(),
         )
     }
 

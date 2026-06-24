@@ -29,6 +29,18 @@ Admin API
 
 QR/Admin은 Controller와 Service 골격이 있어도 이번 범위에서는 건드리지 않는다. 단, 다른 파트 구현에 필요한 Entity/Repository query 추가는 가능하다.
 
+### 최종 구현 제외 범위
+
+아래 기능은 이번 프로젝트에서 구현하지 않는다.
+
+- 실제 JWT/Spring Security 인증 및 권한 관리
+- QR 검증, 중복 사용 방지, 혜택 사용 기록 처리
+- 운영자 마이페이지와 Admin 매장·메뉴·혜택 관리 기능
+- 프론트엔드 지도, GPS, 바텀시트, 화면 이동, QR 카메라 UI
+- 식사·카페·주류·기타 등의 매장 업종 카테고리 및 업종별 필터
+
+현재 존재하는 `MockCurrentUserProvider`, QR/Admin Controller·Service 골격과 더미 응답은 시연용 또는 추후 확장 지점으로만 유지한다. 매장 업종 카테고리를 위한 별도 DB 테이블이나 migration도 추가하지 않는다. 지도 응답의 `categories`는 빈 배열로 유지한다. 위 기능은 이번 프로젝트의 완료 기준과 테스트 범위에 포함하지 않는다.
+
 ## 2. 공통 작업 원칙
 
 ### API 응답
@@ -129,7 +141,7 @@ src/main/kotlin/com/likelion/domain/auth/EmailVerificationCodeRepository.kt
 | --- | --- | --- |
 | POST | `/api/v1/auth/email/send-code` | 이메일 인증 코드 생성/저장 |
 | POST | `/api/v1/auth/email/verify` | 인증 코드 검증, verificationToken 발급 |
-| POST | `/api/v1/auth/signup` | 회원가입, 비밀번호 해싱, 토큰 반환 |
+| POST | `/api/v1/auth/signup` | 이메일 인증 없이 회원가입 |
 | POST | `/api/v1/auth/login` | 로그인, 비밀번호 검증, 토큰 반환 |
 
 ### 구현 상세
@@ -182,12 +194,12 @@ src/main/kotlin/com/likelion/domain/auth/EmailVerificationCodeRepository.kt
 
 해야 할 일:
 
-- `verificationToken` 유효성 확인
 - 이메일 중복 확인
 - `SignupUserType`은 `STUDENT`, `OWNER`만 허용
-- 비밀번호 해싱
+- 현재 시연 버전은 비밀번호 원문 저장. 운영 전 해싱 필요
 - `UserEntity` 저장
-- 회원가입 성공 시 accessToken/refreshToken 반환
+- `isEmailVerified=false`로 저장
+- 로그인 성공 시 accessToken/refreshToken 반환
 
 주의:
 
