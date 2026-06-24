@@ -6,9 +6,7 @@
 
 ## 1. 현재 상태
 
-현재 프로젝트는 Spring Boot/Kotlin 백엔드 스켈레톤이다. Controller/DTO는 보강 API 명세에 맞춰 있고, JPA Entity/Repository, Flyway 초기 schema, 공통 예외 코드까지 1차 기반이 준비되어 있다.
-
-서비스 내부 로직은 아직 대부분 더미 반환이다. 팀원은 각자 맡은 Service에 Repository와 외부 모듈을 연결해 실제 로직을 채우면 된다.
+현재 프로젝트는 Spring Boot/Kotlin 백엔드다. Controller/DTO는 보강 API 명세에 맞춰 있고, JPA Entity/Repository, Flyway 초기 schema, 공통 예외 코드, JWT 인증, Store/Favorite/MyPage/Admin/QR 핵심 서비스가 실제 Repository 기반으로 구현되어 있다.
 
 ## 2. 기술 스택
 
@@ -25,8 +23,8 @@
 | Local DB | H2 MySQL mode |
 | RDS 대상 | MySQL profile |
 | Test | `spring-boot-starter-test`, `kotlin("test")` |
-| Security/JWT | 아직 없음 |
-| Mail | 아직 없음 |
+| Security/JWT | Spring Security + JWT access token |
+| Mail | 실제 발송 없음, 인증 코드는 개발 로그로 확인 |
 
 ## 3. 프로젝트 구조
 
@@ -310,7 +308,7 @@ domain/favorite/FavoriteRepository.kt
 - `AdminService`
 - 매장/메뉴/혜택 등록, 수정, 비활성화
 - QR 토큰 재발급
-- 관리자 권한은 JWT/Security 도입 전까지 TODO로 표시
+- JWT 사용자 유형이 `ADMIN`인 경우만 관리자 작업 허용
 
 ### QR 담당
 
@@ -321,9 +319,9 @@ domain/favorite/FavoriteRepository.kt
 
 ## 14. 아직 공통으로 주의할 점
 
-- 실제 인증/권한 검사는 아직 없다.
-- 메일 발송은 아직 없다.
-- Service는 대부분 더미 데이터를 반환한다.
+- 실제 인증/권한 검사는 JWT 기반으로 적용되어 있다.
+- 메일 발송은 아직 외부 SMTP와 연결하지 않았고, 인증 코드는 로그로 확인한다.
+- Service는 주요 API에서 Repository 기반 실제 데이터를 반환한다.
 - seed data는 아직 없다.
 - 테스트는 Spring context 로딩 수준이다.
 - DB 변경은 반드시 migration으로 한다.

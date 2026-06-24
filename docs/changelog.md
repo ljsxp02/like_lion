@@ -1,5 +1,44 @@
 # Changelog
 
+## 2026-06-24 23:05:00 KST - Admin/QR 스텁 제거 및 실제 저장 로직 구현
+
+### 변경 파일
+
+- `src/main/kotlin/com/likelion/admin/AdminService.kt`
+- `src/main/kotlin/com/likelion/qr/QrService.kt`
+- `src/main/kotlin/com/likelion/domain/qr/QrTokenRepository.kt`
+- `src/test/kotlin/com/likelion/AdminQrIntegrationTests.kt`
+- `src/test/kotlin/com/likelion/AdminWebIntegrationTests.kt`
+- `docs/API_SPEC_COMPLETED.md`
+- `docs/API_SPEC_COMPLETED.csv`
+- `docs/PROJECT_ENDPOINT_OVERVIEW.md`
+- `docs/changelog.md`
+
+### 변경 목적
+
+- 관리자 매장 등록 API가 실제 저장 없이 하드코딩 응답을 반환하던 문제를 제거한다.
+- Admin/QR 계열 API가 실제 Repository 기반으로 매장, 메뉴, 혜택, QR 토큰, 혜택 사용 내역을 저장하고 조회하도록 한다.
+
+### 구현 내용
+
+- `AdminService`에서 `ADMIN` 사용자 유형만 매장/메뉴/혜택 관리와 QR 재발급을 수행하도록 검증한다.
+- 매장 등록, 수정, 비활성화가 `StoreRepository`에 실제 반영되도록 했다.
+- 메뉴 등록/수정과 혜택 등록/수정이 각각 `MenuRepository`, `BenefitRepository`에 실제 반영되도록 했다.
+- QR 재발급 시 기존 활성 QR 토큰을 비활성화하고 새 UUID 토큰을 저장하도록 했다.
+- `QrService`에서 활성 QR 토큰을 검증하고, 중복 사용을 막은 뒤 `BenefitUsageEntity`를 저장하도록 했다.
+- Admin/QR 통합 테스트를 추가해 저장, 수정, 권한 거부, QR 재발급, QR 인증, 중복 인증, 404 오류를 검증했다.
+- Admin Web 통합 테스트를 추가해 `POST /api/v1/admin/stores`가 관리자 JWT로 실제 매장을 저장하고 일반 조회 API에서 조회되는지 검증했다.
+- API 명세와 프로젝트 상태 문서의 Admin/QR “추후 개발 예정” 문구를 구현 완료 상태로 갱신했다.
+
+### 실행한 검증 명령과 결과
+
+- `sh ./gradlew test --tests com.likelion.AdminQrIntegrationTests`
+- 결과: 성공.
+- `sh ./gradlew test`
+- 결과: 성공.
+- `sh ./gradlew test --tests com.likelion.AdminWebIntegrationTests`
+- 결과: 성공.
+
 ## 2026-06-20 05:59:28 KST - Favorite/MyPage 실제 로직 1차 구현
 
 ### 변경 파일

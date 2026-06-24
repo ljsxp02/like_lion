@@ -4,4 +4,5 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface QrTokenRepository : JpaRepository<QrTokenEntity, Long> {
     fun findByTokenAndIsActiveTrue(token: String): QrTokenEntity?
+    fun findAllByStoreIdAndIsActiveTrue(storeId: Long): List<QrTokenEntity>
 }
