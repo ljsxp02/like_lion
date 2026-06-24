@@ -12,7 +12,8 @@ class CorsConfig(
 ) : WebMvcConfigurer {
     override fun addCorsMappings(registry: CorsRegistry) {
         registry.addMapping("/**")
-            .allowedOrigins(*allowedOrigins.toTypedArray())
+            // allowedOriginPatterns: 와일드카드(*.vercel.app 등) 지원. 정확한 origin도 그대로 매칭됨.
+            .allowedOriginPatterns(*allowedOrigins.toTypedArray())
             .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
             .allowedHeaders("*")
             .maxAge(3600)

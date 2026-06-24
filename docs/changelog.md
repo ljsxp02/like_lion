@@ -1,5 +1,36 @@
 # Changelog
 
+## 2026-06-25 00:40:00 KST - CORS 와일드카드 패턴 허용 및 관리자 계정 시드
+
+### 변경 파일
+
+- `src/main/kotlin/com/likelion/common/config/CorsConfig.kt`
+- `src/main/resources/db/migration/V2__seed_admin.sql` (신규)
+- `docs/changelog.md`
+
+### 변경 목적
+
+- 프론트엔드가 Vercel 프리뷰/커스텀 도메인 등 가변 origin에서 호출해도 CORS 에러가 발생하지 않도록 한다.
+- ADMIN 권한이 필요한 관리자 API를 곧바로 사용할 수 있도록 초기 관리자 계정을 자동 생성한다.
+
+### 구현 내용
+
+- `CorsConfig`를 `allowedOrigins` → `allowedOriginPatterns`로 변경하여 와일드카드(`*.vercel.app`, `*.likelion.uk`) origin을 허용한다. 정확 origin도 그대로 매칭된다.
+- 허용 목록은 `CORS_ALLOWED_ORIGINS` 환경변수로 주입한다. 운영 배포 예시: `https://*.vercel.app,https://likelion.uk,http://likelion.uk,https://*.likelion.uk,http://localhost:5173,http://localhost:*,http://127.0.0.1:*`.
+- `V2__seed_admin.sql` 추가: `admin@likelion.uk` / `Admin1234!` (userType=ADMIN) 계정을 시드한다. 평문 비밀번호는 최초 로그인 시 `AuthService`가 평문 일치 확인 후 BCrypt로 자동 업그레이드한다. 매장 데이터는 시드하지 않고 관리자 API로 등록한다.
+
+### 배포 메모 (임시)
+
+- 신규 서버(192.168.0.34)에서 H2 인메모리 → MySQL 8.0 컨테이너로 전환(영구 볼륨 `likelion-mysql-data`), 백엔드는 `mysql` 프로파일로 구동한다.
+- 공개 도메인 `be.likelion.uk`는 cloudflared(`--network host`) 터널이 `localhost:8080`으로 포워딩한다.
+- 매장 12개(광운대 인근 식당)는 관리자 API로 등록했다. MySQL이라 재시작에도 유지된다.
+- 프론트 `fe.likelion.uk`(Vercel)의 직접 라우트 404는 프론트 레포의 `vercel.json` SPA 폴백(`/(.*) → /index.html`) 추가로 해결한다(프론트 영역).
+
+### 실행한 검증과 결과
+
+- `be.likelion.uk` preflight/GET 200, `Access-Control-Allow-Origin`이 호출 origin과 정확 매칭(`team1-fe-1m1a.vercel.app`, 임의 `*.vercel.app` 프리뷰, `fe.likelion.uk`, `localhost:5173`). `evil.com`은 403 차단 확인.
+- `admin@likelion.uk` 로그인 200(JWT `userType=ADMIN`), 관리자 API로 매장 등록 201, 일반유저 토큰은 403(`AUTH_004`). 매장 목록 12개 조회.
+
 ## 2026-06-24 23:05:00 KST - Admin/QR 스텁 제거 및 실제 저장 로직 구현
 
 ### 변경 파일
